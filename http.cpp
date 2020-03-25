@@ -5,11 +5,11 @@
 //     int fd;
 //     int epfd;
 //     int status;//状态机中的状态设置
-//     char buf[4096];
-//     char* method;
-//     char* uri;
-//     char* version;
-//     int index;//当前读取到的位置
+//     char buf[MAXBUF];
+//     char method[MAXSIZE];
+//     char uri[MAXSIZE];
+//     char version[MAXSIZE];
+//     int end;//当前读取到的位置
 //     int pos;//开始位置
 //     bool keep_alive;
 // };
@@ -22,11 +22,12 @@ int doit(void* request)
     int remain = 0;int rc = 0;
     while(1)
     {
+        
         remain = MAXBUF - req->end;
         len = read(req->fd,req->buf+req->end,remain);
         if(len == 0)
         {
-            cout<< "remote close ,the fd "<<req->fd<<"will close"<<endl;
+            cout<< "remote close ,the fd "<<req->fd<<" will close"<<endl;
             close(req->fd);
             delete req;
             return -1;
@@ -44,6 +45,7 @@ int doit(void* request)
         }
 
         req->end += len;
+        //状态机 表明当前读取的是请求行
         if(req->status == HEAD)
         {
             if((rc = http_prase_request_line(req)) != 0)
@@ -61,6 +63,7 @@ int doit(void* request)
         }   
         //string temp = req->method;
         //cout<<temp<<".."<<endl;
+        //只实现了get方法
         string temp = req->method;
         if(temp != "GET")
         {
@@ -70,15 +73,15 @@ int doit(void* request)
 
         struct stat stat_buf;
         string filename,cgiargs;
-
+        //解析URI
         int is_static = prase_uri(req->uri,filename,cgiargs);
-
+        //解析完后看一下文件有没有 如果没有直接报错
         if(stat(filename.c_str(),&stat_buf) < 0)
         {
             clienterror(req->fd,(char*)filename.c_str(),(char*)"404",(char*)"Not found",(char*)"Tiny counldn t find this file");
             return 0;
         }
-
+        //静态文件和动态文件分别服务
         if(is_static)
         {
             if(!S_ISREG(stat_buf.st_mode) || !(S_IRUSR & stat_buf.st_mode))
@@ -137,7 +140,7 @@ void server_static(int fd,string filename,int filesize)
     get_filetype(filename,filetype);
 
     sprintf(buf,"HTTP/1.0 200 OK\r\n");
-    sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);
+    sprintf(buf, "%sServer:Web Server\r\n", buf);
     sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
     sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype.c_str());
     write(fd,buf,strlen(buf));
@@ -162,7 +165,7 @@ void server_dynamic(int fd,string filename,string cgiargs)
     char* argv[] = {NULL};
 
     sprintf(buf,"HTTP/1.0 200 OK\r\n");
-    sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);
+    sprintf(buf, "%sServer:Web Server\r\n", buf);
     write(fd,buf,strlen(buf));
 
     int pid = fork();
@@ -241,10 +244,11 @@ int http_prase_request_line(http_request* req)
     string s = req->buf;
     string head;
     int flag = 0;
-    cout<<s<<"..."<<endl;
+    cout<<s;
+    //请求行是否接收完毕，接收完毕解析头部
     if((flag = s.find("\r\n"))!= string::npos)
     {
-        head = s.substr(0,flag+7);
+        head = s.substr(0,flag);
         char temp[MAXSIZE];int i =0;
         for(i=0;i<head.size();i++)
         {
@@ -269,8 +273,9 @@ int http_prase_request_body(http_request* req)
 {
     char temp_buf[MAXBUF];
     memset(temp_buf, '\0', sizeof(temp_buf));
-    strncpy(temp_buf,req->buf+req->pos,req->end-req->pos+1);
+    strncpy(temp_buf,req->buf+req->pos,req->end-req->pos);
     string s = temp_buf;
+    cout<<s;
     int flag = 0;
     if((flag = s.find("\r\n\r\n"))!=string::npos)
     {

@@ -2,6 +2,7 @@
 #define THREADPOOL_H
 
 #include"web.h"
+#include"http.h"
 #include "httprequest.h"
 struct task_t
 {
