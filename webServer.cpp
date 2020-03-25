@@ -110,7 +110,7 @@ int main(int argc,char* argv[])
                 else
                 {
                     //当有客户端向服务器发送了HTML请求报文
-                    //将其交给线程
+                    //将其交给线程处理
                     rc  = thread_pool_add(pool,doit,events[i].data.ptr);
                     if(rc < 0)
                     {

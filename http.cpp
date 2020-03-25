@@ -277,6 +277,7 @@ int http_prase_request_body(http_request* req)
     string s = temp_buf;
     cout<<s;
     int flag = 0;
+    //解析头部
     if((flag = s.find("\r\n\r\n"))!=string::npos)
     {
         if((flag = s.find("Keep-Alive"))!=string::npos)

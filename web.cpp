@@ -1,5 +1,5 @@
 #include "web.h"
-
+//存放webServer使用的函数
 map<string,string> mparsecmdline(int argc,char* argv[])
 {
     map<string,string> rec;
